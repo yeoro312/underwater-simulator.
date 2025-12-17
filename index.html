@@ -1,0 +1,116 @@
+let people = [];
+let day = 1;
+
+const nameInput = document.getElementById("nameInput");
+const targetSelect = document.getElementById("targetSelect");
+const relationSelect = document.getElementById("relationSelect");
+const list = document.getElementById("list");
+const logBox = document.getElementById("log");
+
+function log(text) {
+  logBox.textContent += text + "\n";
+  logBox.scrollTop = logBox.scrollHeight;
+}
+
+// 드롭다운 갱신
+function updateTargetSelect() {
+  targetSelect.innerHTML = `<option value="">관계 대상 없음</option>`;
+  people.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.name;
+    opt.textContent = p.name;
+    targetSelect.appendChild(opt);
+  });
+}
+
+// 캐릭터 추가
+document.getElementById("addBtn").onclick = () => {
+  if (nameInput.value === "") return;
+
+  const newPerson = {
+    name: nameInput.value,
+    state: "🌊 안정",
+    relations: {}
+  };
+
+  // 기존 캐릭터들과 기본 중립 관계
+  people.forEach(p => {
+    p.relations[newPerson.name] = 0;
+    newPerson.relations[p.name] = 0;
+  });
+
+  // 초기 관계 설정
+  const targetName = targetSelect.value;
+  const value = Number(relationSelect.value);
+
+  if (targetName) {
+    newPerson.relations[targetName] = value;
+    const target = people.find(p => p.name === targetName);
+    target.relations[newPerson.name] = value;
+
+    log(`🫧 ${newPerson.name} ↔ ${targetName} 관계 설정 (${value})`);
+  }
+
+  people.push(newPerson);
+  nameInput.value = "";
+  updateTargetSelect();
+  draw();
+};
+
+// 하루 진행
+document.getElementById("nextBtn").onclick = () => {
+  if (people.length < 2) return;
+
+  log(`\n🌊 조류 ${day}회차`);
+
+  const states = ["🌊 안정", "💨 강한 물살", "🌑 심해 휴식"];
+  people.forEach(p => {
+    p.state = states[Math.floor(Math.random() * states.length)];
+  });
+
+  // 랜덤 상호작용
+  const a = people[Math.floor(Math.random() * people.length)];
+  let b;
+  do {
+    b = people[Math.floor(Math.random() * people.length)];
+  } while (a === b);
+
+  interact(a, b);
+  day++;
+  draw();
+};
+
+// 상호작용
+function interact(a, b) {
+  const change = Math.floor(Math.random() * 11) - 5;
+  a.relations[b.name] += change;
+  b.relations[a.name] += change;
+
+  log(`🐠 ${a.name} ↔ ${b.name} (${change > 0 ? "+" : ""}${change})`);
+
+  if (a.relations[b.name] >= 30) {
+    log(`💙 ${a.name}와 ${b.name}는 연인 상태다`);
+  }
+}
+
+// 화면 출력
+function draw() {
+  list.innerHTML = "";
+
+  people.forEach(p => {
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <strong>🐠 ${p.name}</strong> (${p.state})<br>
+      ${Object.entries(p.relations)
+        .map(([name, value]) => {
+          let icon = "🤍";
+          if (value >= 30) icon = "💙";
+          else if (value >= 10) icon = "💚";
+          else if (value <= -10) icon = "💢";
+          return `${icon} ${name}: ${value}`;
+        })
+        .join("<br>")}
+    `;
+    list.appendChild(li);
+  });
+}
